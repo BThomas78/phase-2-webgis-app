@@ -11,10 +11,13 @@ import Search from "@arcgis/core/widgets/Search.js";
 import Expand from "@arcgis/core/widgets/Expand.js";
 
 const statusEl = document.getElementById("status");
-
 const copyBtn = document.getElementById("copyLinkBtn");
 
 console.log("copyBtn found?", !!copyBtn);
+
+function setStatus(msg) {
+  statusEl.textContent = msg;
+}
 
 function clamp(n, min, max) {
   return Math.min(Math.max(n, min), max);
@@ -24,7 +27,6 @@ function applyUrlViewState(cfg) {
   const params = new URLSearchParams(window.location.search);
 
   const centerStr = params.get("center");
-  const zoomStr = params.get("zoom");
 
   // center
   let center = cfg.center ?? [-89.3985, 40.6331];
@@ -35,18 +37,26 @@ function applyUrlViewState(cfg) {
     }
   }
 
-  // zoom
-  let zoom = Number.isFinite(Number(zoomStr))
-    ? Number(zoomStr)
-    : (cfg.zoom ?? 6);
-  zoom = Math.round(zoom);
-  zoom = clamp(zoom, 0, 23); // 0 = world; 23 is a safe upper bound for Esri vector basemaps
+  // zoom (only if valid >= 0)
+  const zoomStr = params.get("zoom");
+  let zoom = null;
+  if (zoomStr !== null) {
+    const z = Number(zoomStr);
+    if (Number.isFinite(z) && z >= 0) zoom = clamp(Math.round(z), 0, 23);
+  }
 
-  return { center, zoom };
-}
+  // scale (fallback, always valid)
+  const scaleStr = params.get("scale");
+  let scale = null;
+  if (scaleStr !== null) {
+    const s = Number(scaleStr);
+    if (Number.isFinite(s) && s > 0) scale = Math.round(s);
+  }
 
-function setStatus(msg) {
-  statusEl.textContent = msg;
+  // Default if neither is provided
+  if (zoom === null && scale === null) zoom = cfg.zoom ?? 6;
+
+  return { center, zoom, scale };
 }
 
 async function loadConfig() {
@@ -76,15 +86,19 @@ async function main() {
   const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
   if (apiKey) esriConfig.apiKey = apiKey;
 
-  const { center, zoom } = applyUrlViewState(cfg);
+  const { center, zoom, scale } = applyUrlViewState(cfg);
 
-  setStatus("Creating view…");
-  const view = new MapView({
+  const viewOptions = {
     container: "viewDiv",
     map: webmap,
     center,
-    zoom,
-  });
+  };
+
+  if (zoom !== null) viewOptions.zoom = zoom;
+  else if (scale !== null) viewOptions.scale = scale;
+
+  setStatus("Creating view…");
+  const view = new MapView(viewOptions);
 
   // Widgets
   view.ui.add(new Search({ view }), "top-right");
@@ -107,9 +121,6 @@ async function main() {
       const item = event.item;
       const layer = item.layer;
       if (!layer) return;
-
-      // Optional debug
-      // console.log("LayerList item:", item.title, layer.portalItem?.id, layer.url, layer.type);
 
       if (!isActionLayer(layer)) return;
 
@@ -144,32 +155,46 @@ async function main() {
   await view.when();
   setStatus("Ready ✅ (click the map)");
 
-  // Keep URL in sync with view
+  // Keep URL in sync with view (use scale; only write zoom if valid)
   view.watch("stationary", (isStationary) => {
     if (!isStationary) return;
-    const c = view.center;
-    const z = view.zoom;
 
+    const c = view.center;
     const url = new URL(window.location.href);
+
     url.searchParams.set(
       "center",
       `${c.longitude.toFixed(5)},${c.latitude.toFixed(5)}`,
     );
-    url.searchParams.set("zoom", String(Math.max(0, Math.round(z))));
+
+    url.searchParams.set("scale", String(Math.round(view.scale)));
+
+    if (Number.isFinite(view.zoom) && view.zoom >= 0) {
+      url.searchParams.set("zoom", String(Math.round(view.zoom)));
+    } else {
+      url.searchParams.delete("zoom");
+    }
+
     window.history.replaceState({}, "", url);
   });
 
-  // Copy link
+  // Copy link (use scale; only include zoom if valid)
   copyBtn?.addEventListener("click", async () => {
     const c = view.center;
-    const z = view.zoom;
-
     const url = new URL(window.location.href);
+
     url.searchParams.set(
       "center",
       `${c.longitude.toFixed(5)},${c.latitude.toFixed(5)}`,
     );
-    url.searchParams.set("zoom", String(Math.round(z)));
+
+    url.searchParams.set("scale", String(Math.round(view.scale)));
+
+    if (Number.isFinite(view.zoom) && view.zoom >= 0) {
+      url.searchParams.set("zoom", String(Math.round(view.zoom)));
+    } else {
+      url.searchParams.delete("zoom");
+    }
 
     try {
       await navigator.clipboard.writeText(url.toString());
@@ -234,6 +259,7 @@ async function main() {
       const results = (hit.results || []).filter(
         (r) => r.graphic && r.graphic.layer,
       );
+
       if (!results.length) {
         setStatus("Ready ✅ (no feature hit)");
         return;
