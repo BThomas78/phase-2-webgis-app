@@ -55,44 +55,12 @@ async function main() {
     portalItem: { id: cfg.webmapItemId },
   });
 
-  // ✅ Force portal item load BEFORE applying API key
-  try {
-    await webmap.load();
-  } catch (e) {
-    console.error("WebMap load failed:", e);
-    setStatus("WebMap load failed (see Console)");
-    throw e;
-  }
+  // Load the portal item first (public WebMap should load without a key)
+  await webmap.load();
 
-  // ✅ Now apply API key (optional)
+  // Optional API key (for premium services like geocoding/basemaps)
   const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
-  if (apiKey) {
-    esriConfig.apiKey = apiKey;
-  }
-
-  const { center, zoom } = applyUrlViewState(cfg);
-
-  setStatus("Creating view…");
-  const view = new MapView({
-    container: "viewDiv",
-    map: webmap,
-    center,
-    zoom,
-  });
-
-  // Optional API key (only needed for premium services like basemap/geo/search)
-  const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
-  if (apiKey) {
-    esriConfig.apiKey = apiKey;
-  }
-
-  if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
-  if (!cfg.webmapItemId) throw new Error("config.json missing webmapItemId");
-
-  setStatus("Loading WebMap…");
-  const webmap = new WebMap({
-    portalItem: { id: cfg.webmapItemId },
-  });
+  if (apiKey) esriConfig.apiKey = apiKey;
 
   const { center, zoom } = applyUrlViewState(cfg);
 
@@ -105,9 +73,9 @@ async function main() {
   });
 
   // Widgets
-  /// view.ui.add(new Search({ view }), "top-right");
+  view.ui.add(new Search({ view }), "top-right");
 
-  // ✅ Layers allowed to show actions (by portalItem id)
+  // ✅ LayerList actions allowed only for these portal item IDs
   const ACTION_PORTALITEM_IDS = new Set([
     "f193a89113fa43a6ae9c4482b2d9c1d3",
     "88e08b054f834d25a3d215497674f94d",
@@ -126,13 +94,8 @@ async function main() {
       const layer = item.layer;
       if (!layer) return;
 
-      // TEMP: verify which layers match
-      console.log("LayerList item:", {
-        title: item.title,
-        portalItemId: layer.portalItem?.id,
-        url: layer.url,
-        layerType: layer.type,
-      });
+      // Optional debug
+      // console.log("LayerList item:", item.title, layer.portalItem?.id, layer.url, layer.type);
 
       if (!isActionLayer(layer)) return;
 
@@ -167,9 +130,9 @@ async function main() {
   await view.when();
   setStatus("Ready ✅ (click the map)");
 
+  // Keep URL in sync with view
   view.watch("stationary", (isStationary) => {
     if (!isStationary) return;
-
     const c = view.center;
     const z = view.zoom;
 
@@ -179,10 +142,10 @@ async function main() {
       `${c.longitude.toFixed(5)},${c.latitude.toFixed(5)}`,
     );
     url.searchParams.set("zoom", String(Math.round(z)));
-
     window.history.replaceState({}, "", url);
   });
 
+  // Copy link
   copyBtn?.addEventListener("click", async () => {
     const c = view.center;
     const z = view.zoom;
@@ -203,6 +166,7 @@ async function main() {
     }
   });
 
+  // LayerList action handler
   layerList.on("trigger-action", async (event) => {
     const layer = event.item?.layer;
     if (!layer) return;
@@ -237,11 +201,10 @@ async function main() {
     }
   });
 
-  // Live loading indicator (won't override identify status)
+  // Loading indicator (don’t override identify)
   view.watch("updating", (isUpdating) => {
     const current = statusEl.textContent || "";
     const isIdentifying = current.startsWith("Identifying");
-
     if (isIdentifying) return;
 
     if (isUpdating) setStatus("Updating…");
@@ -264,6 +227,7 @@ async function main() {
 
       const top =
         results.find((r) => r.graphic.layer?.type === "feature") ?? results[0];
+
       const layerTitle = top.graphic.layer?.title ?? "Layer";
       const attrs = top.graphic.attributes ?? {};
 
