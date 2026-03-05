@@ -40,6 +40,7 @@ async function loadConfig() {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to load config.json (${res.status})`);
+  0;
   return res.json();
 }
 
@@ -48,16 +49,13 @@ async function main() {
   const cfg = await loadConfig();
 
   const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
-  if (!apiKey) throw new Error("Missing VITE_ARCGIS_API_KEY in .env");
-  esriConfig.apiKey = apiKey;
-
-  if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
-  if (!cfg.webmapItemId) throw new Error("config.json missing webmapItemId");
-
-  setStatus("Loading WebMap…");
-  const webmap = new WebMap({
-    portalItem: { id: cfg.webmapItemId },
-  });
+  if (apiKey) {
+    esriConfig.apiKey = apiKey;
+  } else {
+    console.warn(
+      "No API key found. Public content will still load; some services may not.",
+    );
+  }
 
   const { center, zoom } = applyUrlViewState(cfg);
 
