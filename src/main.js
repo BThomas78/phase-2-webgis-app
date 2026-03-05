@@ -47,6 +47,39 @@ async function main() {
   setStatus("Loading config…");
   const cfg = await loadConfig();
 
+  if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
+  if (!cfg.webmapItemId) throw new Error("config.json missing webmapItemId");
+
+  setStatus("Loading WebMap…");
+  const webmap = new WebMap({
+    portalItem: { id: cfg.webmapItemId },
+  });
+
+  // ✅ Force portal item load BEFORE applying API key
+  try {
+    await webmap.load();
+  } catch (e) {
+    console.error("WebMap load failed:", e);
+    setStatus("WebMap load failed (see Console)");
+    throw e;
+  }
+
+  // ✅ Now apply API key (optional)
+  const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
+  if (apiKey) {
+    esriConfig.apiKey = apiKey;
+  }
+
+  const { center, zoom } = applyUrlViewState(cfg);
+
+  setStatus("Creating view…");
+  const view = new MapView({
+    container: "viewDiv",
+    map: webmap,
+    center,
+    zoom,
+  });
+
   // Optional API key (only needed for premium services like basemap/geo/search)
   const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
   if (apiKey) {
