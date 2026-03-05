@@ -47,13 +47,10 @@ async function main() {
   setStatus("Loading config…");
   const cfg = await loadConfig();
 
+  // Optional API key (only needed for premium services like basemap/geo/search)
   const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
   if (apiKey) {
     esriConfig.apiKey = apiKey;
-  } else {
-    console.warn(
-      "No API key found. Public content will still load; some services may not.",
-    );
   }
 
   if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
@@ -75,7 +72,7 @@ async function main() {
   });
 
   // Widgets
-  view.ui.add(new Search({ view }), "top-right");
+  /// view.ui.add(new Search({ view }), "top-right");
 
   // ✅ Layers allowed to show actions (by portalItem id)
   const ACTION_PORTALITEM_IDS = new Set([
