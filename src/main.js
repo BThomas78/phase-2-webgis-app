@@ -74,17 +74,18 @@ async function main() {
   if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
   if (!cfg.webmapItemId) throw new Error("config.json missing webmapItemId");
 
+  // Optional API key (needed for Esri basemaps + geocoding/Search)
+  const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
+  const hasKey = !!apiKey;
+  console.log("Has API key?", hasKey);
+  if (hasKey) esriConfig.apiKey = apiKey;
+
   setStatus("Loading WebMap…");
   const webmap = new WebMap({
     portalItem: { id: cfg.webmapItemId },
   });
 
-  // Load the portal item first (public WebMap should load without a key)
   await webmap.load();
-
-  // Optional API key (for premium services like geocoding/basemaps)
-  const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
-  if (apiKey) esriConfig.apiKey = apiKey;
 
   const { center, zoom, scale } = applyUrlViewState(cfg);
 
@@ -101,7 +102,11 @@ async function main() {
   const view = new MapView(viewOptions);
 
   // Widgets
-  view.ui.add(new Search({ view }), "top-right");
+  if (hasKey) {
+    view.ui.add(new Search({ view }), "top-right");
+  } else {
+    console.warn("Search disabled (no API key in this build).");
+  }
 
   // ✅ LayerList actions allowed only for these portal item IDs
   const ACTION_PORTALITEM_IDS = new Set([
