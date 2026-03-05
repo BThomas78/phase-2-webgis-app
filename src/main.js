@@ -16,17 +16,31 @@ const copyBtn = document.getElementById("copyLinkBtn");
 
 console.log("copyBtn found?", !!copyBtn);
 
+function clamp(n, min, max) {
+  return Math.min(Math.max(n, min), max);
+}
+
 function applyUrlViewState(cfg) {
   const params = new URLSearchParams(window.location.search);
 
   const centerStr = params.get("center");
   const zoomStr = params.get("zoom");
 
-  const center = centerStr
-    ? centerStr.split(",").map(Number)
-    : (cfg.center ?? [-89.3985, 40.6331]);
+  // center
+  let center = cfg.center ?? [-89.3985, 40.6331];
+  if (centerStr) {
+    const parts = centerStr.split(",").map(Number);
+    if (parts.length === 2 && parts.every(Number.isFinite)) {
+      center = [clamp(parts[0], -180, 180), clamp(parts[1], -90, 90)];
+    }
+  }
 
-  const zoom = zoomStr ? Number(zoomStr) : (cfg.zoom ?? 6);
+  // zoom
+  let zoom = Number.isFinite(Number(zoomStr))
+    ? Number(zoomStr)
+    : (cfg.zoom ?? 6);
+  zoom = Math.round(zoom);
+  zoom = clamp(zoom, 0, 23); // 0 = world; 23 is a safe upper bound for Esri vector basemaps
 
   return { center, zoom };
 }
@@ -141,7 +155,7 @@ async function main() {
       "center",
       `${c.longitude.toFixed(5)},${c.latitude.toFixed(5)}`,
     );
-    url.searchParams.set("zoom", String(Math.round(z)));
+    url.searchParams.set("zoom", String(Math.max(0, Math.round(z))));
     window.history.replaceState({}, "", url);
   });
 
