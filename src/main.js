@@ -36,7 +36,9 @@ function setStatus(msg) {
 }
 
 async function loadConfig() {
-  const res = await fetch("/config.json", { cache: "no-store" });
+  const res = await fetch(`${import.meta.env.BASE_URL}config.json`, {
+    cache: "no-store",
+  });
   if (!res.ok) throw new Error(`Failed to load config.json (${res.status})`);
   return res.json();
 }
