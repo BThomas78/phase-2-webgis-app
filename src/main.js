@@ -74,10 +74,10 @@ async function main() {
   if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
   if (!cfg.webmapItemId) throw new Error("config.json missing webmapItemId");
 
-  // Optional API key (needed for Esri basemaps + geocoding/Search)
+  // ✅ API key FIRST (GitHub Pages build must inject this via Actions secret)
   const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
   const hasKey = !!apiKey;
-  console.log("Has API key?", hasKey);
+  console.log("API key present?", hasKey);
   if (hasKey) esriConfig.apiKey = apiKey;
 
   setStatus("Loading WebMap…");
@@ -85,7 +85,12 @@ async function main() {
     portalItem: { id: cfg.webmapItemId },
   });
 
-  await webmap.load();
+  // Preflight check: can we reach the portal item JSON?
+  const itemUrl = `${esriConfig.portalUrl}/sharing/rest/content/items/${cfg.webmapItemId}?f=json`;
+  fetch(itemUrl)
+    .then((r) => r.json())
+    .then((j) => console.log("Portal item preflight:", j))
+    .catch((e) => console.error("Portal item preflight FAILED:", e));
 
   const { center, zoom, scale } = applyUrlViewState(cfg);
 
@@ -101,11 +106,17 @@ async function main() {
   setStatus("Creating view…");
   const view = new MapView(viewOptions);
 
-  // Widgets
+  // If the WebMap fails to load, show it clearly instead of a blank screen
+  webmap.load().catch((e) => {
+    console.error("WebMap load FAILED:", e);
+    setStatus("WebMap failed to load (see Console)");
+  });
+
+  // Widgets (Search only when key is present)
   if (hasKey) {
     view.ui.add(new Search({ view }), "top-right");
   } else {
-    console.warn("Search disabled (no API key in this build).");
+    console.warn("Search disabled: no API key in this build.");
   }
 
   // ✅ LayerList actions allowed only for these portal item IDs
