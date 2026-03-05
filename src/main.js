@@ -40,7 +40,6 @@ async function loadConfig() {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to load config.json (${res.status})`);
-  0;
   return res.json();
 }
 
@@ -59,6 +58,11 @@ async function main() {
 
   if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
   if (!cfg.webmapItemId) throw new Error("config.json missing webmapItemId");
+
+  setStatus("Loading WebMap…");
+  const webmap = new WebMap({
+    portalItem: { id: cfg.webmapItemId },
+  });
 
   const { center, zoom } = applyUrlViewState(cfg);
 
