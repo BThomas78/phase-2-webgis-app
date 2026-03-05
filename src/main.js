@@ -57,6 +57,9 @@ async function main() {
     );
   }
 
+  if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
+  if (!cfg.webmapItemId) throw new Error("config.json missing webmapItemId");
+
   const { center, zoom } = applyUrlViewState(cfg);
 
   setStatus("Creating view…");
