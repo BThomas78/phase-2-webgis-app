@@ -320,7 +320,7 @@ async function main() {
         color: [0, 0, 0, 0], // transparent fill
         outline: {
           color: [60, 60, 60, 1],
-          width: 1.2,
+          width: 0.5,
         },
       },
     },
@@ -367,6 +367,28 @@ async function main() {
         },
       },
     },
+    labelingInfo: [
+      {
+        labelExpressionInfo: {
+          expression: "$feature.Establishment",
+        },
+        symbol: {
+          type: "text",
+          color: "black",
+          haloColor: "white",
+          haloSize: 1.5,
+          font: {
+            family: "Arial",
+            size: 9,
+            weight: "bold",
+          },
+        },
+        labelPlacement: "above-center",
+        minscale: 2311163,
+        maxscale: 0,
+      },
+    ],
+    labelsVisible: true,
     popupTemplate: {
       title: "{Establishment}",
       content: `
