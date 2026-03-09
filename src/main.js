@@ -85,33 +85,72 @@ async function main() {
           name: "expr0",
           title: "Low Access",
           expression: `
-          return DefaultValue($feature["IS_LOWACC"], "N/A");
+          var v = $feature["IS_LOWACC_TRACT"];
+          if (IsEmpty(v)) return "N/A";
+          if (Number(v) == 1) return "YES";
+          if (Number(v) == 0) return "NO";
+          return "N/A";
         `,
         },
         {
           name: "expr1",
           title: "Median Family Income (Tract)",
           expression: `
-          var n = Number($feature["Census_Tract_Median_Family_Income"]);
-          if (IsEmpty(n) || IsNaN(n)) return "N/A";
-          return "$" + Text(n, "#,###");
+          var raw = $feature["Census_Tract_Median_Family_Income"];
+
+          var s = Trim(Text(raw));
+          if (IsEmpty(s) || s == "") return "N/A";
+
+          // remove common formatting
+          s = Replace(s, ",", "");
+          s = Replace(s, "$", "");
+          s = Replace(s, FromCharCode(160), ""); // non-breaking space
+
+          var v = Number(s);
+
+          // NaN check (Arcade uses IsNan, not IsNaN)
+          if (IsNan(v)) return "N/A";
+
+          return "$" + Text(v, "#,###");
         `,
         },
         {
           name: "expr2",
           title: "State Median Family Income",
           expression: `
-          var n = Number($feature["State Median Family Income"]);
-          if (IsEmpty(n) || IsNaN(n)) return "N/A";
-          return "$" + Text(n, "#,###");
+          var raw = $feature["State_Benchmark_Median_Family_Income"];
+
+          var s = Trim(Text(raw));
+          if (IsEmpty(s) || s == "") return "N/A";
+
+          // strip formatting that breaks Number()
+          s = Replace(s, ",", "");
+          s = Replace(s, "$", "");
+          s = Replace(s, FromCharCode(160), ""); // non-breaking space (optional but helpful)
+
+          var v = Number(s);
+          if (IsNan(v)) return "N/A";
+
+          return "$" + Text(v, "#,###");
         `,
         },
         {
           name: "expr3",
           title: "MSA Median Family Income",
           expression: `
-          var n = Number($feature["MMSA_Benchmark_Median_Family_Income"]);
-          if (IsEmpty(n) || IsNaN(n)) return "N/A";
+          var raw = $feature["MSA_Benchmark_Median_Family_Income"];
+
+          var s = Trim(Text(raw));
+          if (IsEmpty(s) || s == "") return "N/A";
+
+          // strip formatting that breaks Number()
+          s = Replace(s, ",", "");
+          s = Replace(s, "$", "");
+          s = Replace(s, FromCharCode(160), ""); // non-breaking space
+
+          var n = Number(s);
+          if (IsNan(n) || n == 0) return "N/A";
+
           return "$" + Text(n, "#,###");
         `,
         },
@@ -119,18 +158,18 @@ async function main() {
           name: "expr4",
           title: "Tract % of State Benchmark",
           expression: `
-          var n = Number($feature["Census_Tract_Percent_of_State_Benchmarked_Median_Family_Income"]);
-          if (IsEmpty(n) || IsNaN(n)) return "N/A";
-          return Text(n, "0.00") + "%";
+          var v = $feature["Census_Tract_Percent_of_State_Benchmarked_Median_Family_Income"];
+          if (IsEmpty(v) || Trim(Text(v)) == "") return "N/A";
+          return Text(v) + "%";
         `,
         },
         {
           name: "expr5",
           title: "Tract % of MSA Benchmark",
           expression: `
-          var n = Number($feature["Census_Tract_Percent_of_MSA_Benchmarked_Median_Family_Income"]);
-          if (IsEmpty(n) || IsNaN(n)) return "N/A";
-          return Text(n, "0.00") + "%";
+          var v = $feature["Census_Tract_Percent_of_MSA_Benchmarked_Median_Family_Income"];
+          if (IsEmpty(v) || Trim(Text(v)) == "") return "N/A";
+          return Text(v) + "%";
         `,
         },
       ],
