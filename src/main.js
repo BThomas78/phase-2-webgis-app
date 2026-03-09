@@ -74,10 +74,190 @@ async function main() {
   console.log("Running without API key for public FeatureLayer test");
   console.log("Layer URL:", layerUrl);
 
-  setStatus("Loading layer…");
   const featureLayer = new FeatureLayer({
     url: layerUrl,
     outFields: ["*"],
+    popupEnabled: true,
+    popupTemplate: {
+      title: "",
+      expressionInfos: [
+        {
+          name: "expr0",
+          title: "Low Access",
+          expression: `
+          return DefaultValue($feature["IS_LOWACC"], "N/A");
+        `,
+        },
+        {
+          name: "expr1",
+          title: "Median Family Income (Tract)",
+          expression: `
+          var n = Number($feature["Median_Family_Income"]);
+          if (IsEmpty(n) || IsNaN(n)) return "N/A";
+          return "$" + Text(n, "#,###");
+        `,
+        },
+        {
+          name: "expr2",
+          title: "State Median Family Income",
+          expression: `
+          var n = Number($feature["State_Median_Family_Income"]);
+          if (IsEmpty(n) || IsNaN(n)) return "N/A";
+          return "$" + Text(n, "#,###");
+        `,
+        },
+        {
+          name: "expr3",
+          title: "MSA Median Family Income",
+          expression: `
+          var n = Number($feature["MSA_Median_Family_Income"]);
+          if (IsEmpty(n) || IsNaN(n)) return "N/A";
+          return "$" + Text(n, "#,###");
+        `,
+        },
+        {
+          name: "expr4",
+          title: "Tract % of State Benchmark",
+          expression: `
+          var n = Number($feature["Census_Tract_Percent_of_State_Benchmarked_Median_Family_Income"]);
+          if (IsEmpty(n) || IsNaN(n)) return "N/A";
+          return Text(n, "0.00") + "%";
+        `,
+        },
+        {
+          name: "expr5",
+          title: "Tract % of MSA Benchmark",
+          expression: `
+          var n = Number($feature["Census_Tract_Percent_of_MSA_Benchmarked_Median_Family_Income"]);
+          if (IsEmpty(n) || IsNaN(n)) return "N/A";
+          return Text(n, "0.00") + "%";
+        `,
+        },
+      ],
+      title: "Low Access and Low Income Tracts",
+      content: `
+      <div style="font-family:Arial, sans-serif;font-size:13px;">
+    <div style="background-color:#2b4a6f;color:#ffffff;font-size:15px;margin:-4px -4px 8px;padding:6px 10px;">
+        <strong>Census Tract Profile</strong>
+    </div>
+    <div style="margin:4px 0 10px;">
+        <div style="color:#333;">
+            <strong>Census Tract: </strong><span><strong>{GEOID11}</strong></span><strong>&nbsp;</strong>
+        </div>
+        <div style="color:#555;margin-top:2px;">
+            County: <strong>{County_Name}</strong><br>
+            Metro / Non-Metro: <span><strong>{Metro_Nonmetro_Designation}</strong></span><strong>&nbsp;</strong><br>
+            RUCA Type: <strong>{RUCA_Type}</strong> Value: <span><strong>{PrimaryRUCA}&nbsp;</strong></span>
+        </div>
+        <div style="color:#555;margin-top:2px;">
+            Total Population: <strong>{POP_TOTAL}</strong><br>
+            <strong>Low Income:</strong> <span><strong>{Does_Census_Tract_Qualify_for_IGI_based_on_Poverty_or_Income_Criteria}</strong></span>&nbsp;
+        </div>
+        <div style="color:#555;margin-top:2px;">
+            <strong>Low Access: </strong><span><strong>{expression/expr0}</strong></span><strong>&nbsp;</strong>
+        </div>
+    </div>
+    <div style="border-bottom:1px solid #cccccc;color:#a32b2b;margin:6px 0 4px;padding-bottom:2px;">
+        <strong>Low Access to Healthy Food</strong>
+    </div>
+    <figure>
+        <figure>
+            <figure>
+                <figure>
+                    <figure class="table">
+                        <table style="border-collapse:collapse;margin-bottom:8px;">
+                            <tbody>
+                                <tr style="background-color:#f5f5f5;">
+                                    <td style="color:#333;padding:4px 6px;width:55%;">
+                                        Low-Access Population
+                                    </td>
+                                    <td style="padding:4px 6px;text-align:right;">
+                                        <strong>{LOWACC_POP_FIX}</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#333;padding:4px 6px;">
+                                        Low-Access Share of Tract Population
+                                    </td>
+                                    <td style="padding:4px 6px;text-align:right;">
+                                        <strong>{PCT_LOWACC}%</strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </figure>
+                </figure>
+            </figure>
+        </figure>
+    </figure>
+    <div style="border-bottom:1px solid #cccccc;color:#a32b2b;margin:6px 0 4px;padding-bottom:2px;">
+        <strong>Poverty &amp; Income Indicators</strong>
+    </div>
+    <figure>
+        <figure>
+            <figure>
+                <figure>
+                    <figure class="table">
+                        <table style="border-collapse:collapse;margin-bottom:4px;">
+                            <tbody>
+                                <tr style="background-color:#f5f5f5;">
+                                    <td style="color:#333;padding:4px 6px;width:55%;">
+                                        Census Tract Poverty Rate
+                                    </td>
+                                    <td style="padding:4px 6px;text-align:right;">
+                                        <span><strong>{Census_Tract_Poverty_Rate}</strong></span><strong> %</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#333;padding:4px 6px;">
+                                        Median Family Income (Tract)
+                                    </td>
+                                    <td style="padding:4px 6px;text-align:right;">
+                                        <span><strong>{expression/expr1}</strong></span>
+                                    </td>
+                                </tr>
+                                <tr style="background-color:#f5f5f5;">
+                                    <td style="color:#333;padding:4px 6px;">
+                                        State Median Family Income
+                                    </td>
+                                    <td style="padding:4px 6px;text-align:right;">
+                                        <span><strong>{expression/expr2}</strong></span><strong>&nbsp;</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#333;padding:4px 6px;">
+                                        Tract % of State Benchmark
+                                    </td>
+                                    <td style="padding:4px 6px;text-align:right;">
+                                        <span><strong>{expression/expr4}</strong></span><strong>&nbsp;</strong>
+                                    </td>
+                                </tr>
+                                <tr style="background-color:#f5f5f5;">
+                                    <td style="color:#333;padding:4px 6px;">
+                                        MSA Median Family Income
+                                    </td>
+                                    <td style="padding:4px 6px;text-align:right;">
+                                        <span><strong>{expression/expr3}</strong></span><strong>&nbsp;</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color:#333;padding:4px 6px;">
+                                        Tract % of MSA Benchmark
+                                    </td>
+                                    <td style="padding:4px 6px;text-align:right;">
+                                        <span><strong>{expression/expr5}</strong></span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </figure>
+                </figure>
+            </figure>
+        </figure>
+    </figure>
+</div>
+    `,
+    },
   });
 
   const map = new Map({
