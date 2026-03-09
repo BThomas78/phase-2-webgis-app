@@ -78,7 +78,7 @@ async function main() {
   const { center, zoom, scale } = applyUrlViewState(cfg);
 
   const layerUrl =
-    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_022626/FeatureServer/0";
+    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_022626/FeatureServer/3";
 
   setStatus("Loading layer…");
   const featureLayer = new FeatureLayer({
