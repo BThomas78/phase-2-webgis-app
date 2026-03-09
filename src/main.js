@@ -62,246 +62,257 @@ async function loadConfig() {
   return res.json();
 }
 
+const sharedPopupTemplate = {
+  title: "Low Access and Low Income Tracts",
+  expressionInfos: [
+    {
+      name: "expr0",
+      title: "Low Access",
+      expression: `
+        var v = $feature["IS_LOWACC_TRACT"];
+        if (IsEmpty(v)) return "N/A";
+        if (Number(v) == 1) return "YES";
+        if (Number(v) == 0) return "NO";
+        return "N/A";
+      `,
+    },
+    {
+      name: "expr1",
+      title: "Median Family Income (Tract)",
+      expression: `
+        var raw = $feature["Census_Tract_Median_Family_Income"];
+
+        var s = Trim(Text(raw));
+        if (IsEmpty(s) || s == "") return "N/A";
+
+        s = Replace(s, ",", "");
+        s = Replace(s, "$", "");
+        s = Replace(s, FromCharCode(160), "");
+
+        var v = Number(s);
+        if (IsNan(v)) return "N/A";
+
+        return "$" + Text(v, "#,###");
+      `,
+    },
+    {
+      name: "expr2",
+      title: "State Median Family Income",
+      expression: `
+        var raw = $feature["State_Benchmark_Median_Family_Income"];
+
+        var s = Trim(Text(raw));
+        if (IsEmpty(s) || s == "") return "N/A";
+
+        s = Replace(s, ",", "");
+        s = Replace(s, "$", "");
+        s = Replace(s, FromCharCode(160), "");
+
+        var v = Number(s);
+        if (IsNan(v)) return "N/A";
+
+        return "$" + Text(v, "#,###");
+      `,
+    },
+    {
+      name: "expr3",
+      title: "MSA Median Family Income",
+      expression: `
+        var raw = $feature["MSA_Benchmark_Median_Family_Income"];
+
+        var s = Trim(Text(raw));
+        if (IsEmpty(s) || s == "") return "N/A";
+
+        s = Replace(s, ",", "");
+        s = Replace(s, "$", "");
+        s = Replace(s, FromCharCode(160), "");
+
+        var n = Number(s);
+        if (IsNan(n) || n == 0) return "N/A";
+
+        return "$" + Text(n, "#,###");
+      `,
+    },
+    {
+      name: "expr4",
+      title: "Tract % of State Benchmark",
+      expression: `
+        var v = $feature["Census_Tract_Percent_of_State_Benchmarked_Median_Family_Income"];
+        if (IsEmpty(v) || Trim(Text(v)) == "") return "N/A";
+        return Text(v) + "%";
+      `,
+    },
+    {
+      name: "expr5",
+      title: "Tract % of MSA Benchmark",
+      expression: `
+        var v = $feature["Census_Tract_Percent_of_MSA_Benchmarked_Median_Family_Income"];
+        if (IsEmpty(v) || Trim(Text(v)) == "") return "N/A";
+        return Text(v) + "%";
+      `,
+    },
+  ],
+  content: `
+    <div style="font-family:Arial, sans-serif;font-size:13px;">
+      <div style="background-color:#2b4a6f;color:#ffffff;font-size:15px;margin:-4px -4px 8px;padding:6px 10px;">
+        <strong>Census Tract Profile</strong>
+      </div>
+
+      <div style="margin:4px 0 10px;">
+        <div style="color:#333;">
+          <strong>Census Tract: </strong><span><strong>{GEOID11}</strong></span><strong>&nbsp;</strong>
+        </div>
+
+        <div style="color:#555;margin-top:2px;">
+          County: <strong>{County_Name}</strong><br>
+          Metro / Non-Metro: <span><strong>{Metro_Nonmetro_Designation}</strong></span><strong>&nbsp;</strong><br>
+          RUCA Type: <strong>{RUCA_Type}</strong> Value: <span><strong>{PrimaryRUCA}&nbsp;</strong></span>
+        </div>
+
+        <div style="color:#555;margin-top:2px;">
+          Total Population: <strong>{POP_TOTAL}</strong><br>
+          <strong>Low Income:</strong> <span><strong>{Does_Census_Tract_Qualify_for_IGI_based_on_Poverty_or_Income_Criteria}</strong></span>&nbsp;
+        </div>
+
+        <div style="color:#555;margin-top:2px;">
+          <strong>Low Access: </strong><span><strong>{expression/expr0}</strong></span><strong>&nbsp;</strong>
+        </div>
+      </div>
+
+      <div style="border-bottom:1px solid #cccccc;color:#a32b2b;margin:6px 0 4px;padding-bottom:2px;">
+        <strong>Low Access to Healthy Food</strong>
+      </div>
+
+      <table style="border-collapse:collapse;margin-bottom:8px;">
+        <tbody>
+          <tr style="background-color:#f5f5f5;">
+            <td style="color:#333;padding:4px 6px;width:55%;">
+              Low-Access Population
+            </td>
+            <td style="padding:4px 6px;text-align:right;">
+              <strong>{LOWACC_POP_FIX}</strong>
+            </td>
+          </tr>
+          <tr>
+            <td style="color:#333;padding:4px 6px;">
+              Low-Access Share of Tract Population
+            </td>
+            <td style="padding:4px 6px;text-align:right;">
+              <strong>{PCT_LOWACC}%</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="border-bottom:1px solid #cccccc;color:#a32b2b;margin:6px 0 4px;padding-bottom:2px;">
+        <strong>Poverty &amp; Income Indicators</strong>
+      </div>
+
+      <table style="border-collapse:collapse;margin-bottom:4px;">
+        <tbody>
+          <tr style="background-color:#f5f5f5;">
+            <td style="color:#333;padding:4px 6px;width:55%;">
+              Census Tract Poverty Rate
+            </td>
+            <td style="padding:4px 6px;text-align:right;">
+              <span><strong>{Census_Tract_Poverty_Rate}</strong></span><strong> %</strong>
+            </td>
+          </tr>
+          <tr>
+            <td style="color:#333;padding:4px 6px;">
+              Median Family Income (Tract)
+            </td>
+            <td style="padding:4px 6px;text-align:right;">
+              <span><strong>{expression/expr1}</strong></span>
+            </td>
+          </tr>
+          <tr style="background-color:#f5f5f5;">
+            <td style="color:#333;padding:4px 6px;">
+              State Median Family Income
+            </td>
+            <td style="padding:4px 6px;text-align:right;">
+              <span><strong>{expression/expr2}</strong></span><strong>&nbsp;</strong>
+            </td>
+          </tr>
+          <tr>
+            <td style="color:#333;padding:4px 6px;">
+              Tract % of State Benchmark
+            </td>
+            <td style="padding:4px 6px;text-align:right;">
+              <span><strong>{expression/expr4}</strong></span><strong>&nbsp;</strong>
+            </td>
+          </tr>
+          <tr style="background-color:#f5f5f5;">
+            <td style="color:#333;padding:4px 6px;">
+              MSA Median Family Income
+            </td>
+            <td style="padding:4px 6px;text-align:right;">
+              <span><strong>{expression/expr3}</strong></span><strong>&nbsp;</strong>
+            </td>
+          </tr>
+          <tr>
+            <td style="color:#333;padding:4px 6px;">
+              Tract % of MSA Benchmark
+            </td>
+            <td style="padding:4px 6px;text-align:right;">
+              <span><strong>{expression/expr5}</strong></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `,
+};
+
 async function main() {
   setStatus("Loading config…");
   const cfg = await loadConfig();
 
   const { center, zoom, scale } = applyUrlViewState(cfg);
 
-  const layerUrl =
+  const layerUrl1 =
     "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_022626/FeatureServer/3";
 
-  console.log("Running without API key for public FeatureLayer test");
-  console.log("Layer URL:", layerUrl);
+  const layerUrl2 =
+    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_ALL_022626/FeatureServer/0";
 
-  const featureLayer = new FeatureLayer({
-    url: layerUrl,
+  const layerUrl3 =
+    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_Counties/FeatureServer/0";
+
+  const layerUrl4 =
+    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/Grocery_Locations/FeatureServer/0";
+
+  setStatus("Loading layers…");
+
+  const layer1 = new FeatureLayer({
+    url: layerUrl1,
     outFields: ["*"],
     popupEnabled: true,
-    popupTemplate: {
-      title: "",
-      expressionInfos: [
-        {
-          name: "expr0",
-          title: "Low Access",
-          expression: `
-          var v = $feature["IS_LOWACC_TRACT"];
-          if (IsEmpty(v)) return "N/A";
-          if (Number(v) == 1) return "YES";
-          if (Number(v) == 0) return "NO";
-          return "N/A";
-        `,
-        },
-        {
-          name: "expr1",
-          title: "Median Family Income (Tract)",
-          expression: `
-          var raw = $feature["Census_Tract_Median_Family_Income"];
+    popupTemplate: sharedPopupTemplate,
+  });
 
-          var s = Trim(Text(raw));
-          if (IsEmpty(s) || s == "") return "N/A";
+  const layer2 = new FeatureLayer({
+    url: layerUrl2,
+    outFields: ["*"],
+    popupEnabled: true,
+    popupTemplate: sharedPopupTemplate,
+  });
 
-          // remove common formatting
-          s = Replace(s, ",", "");
-          s = Replace(s, "$", "");
-          s = Replace(s, FromCharCode(160), ""); // non-breaking space
+  const layer3 = new FeatureLayer({
+    url: layerUrl3,
+    outFields: ["*"],
+    popupEnabled: true,
+  });
 
-          var v = Number(s);
-
-          // NaN check (Arcade uses IsNan, not IsNaN)
-          if (IsNan(v)) return "N/A";
-
-          return "$" + Text(v, "#,###");
-        `,
-        },
-        {
-          name: "expr2",
-          title: "State Median Family Income",
-          expression: `
-          var raw = $feature["State_Benchmark_Median_Family_Income"];
-
-          var s = Trim(Text(raw));
-          if (IsEmpty(s) || s == "") return "N/A";
-
-          // strip formatting that breaks Number()
-          s = Replace(s, ",", "");
-          s = Replace(s, "$", "");
-          s = Replace(s, FromCharCode(160), ""); // non-breaking space (optional but helpful)
-
-          var v = Number(s);
-          if (IsNan(v)) return "N/A";
-
-          return "$" + Text(v, "#,###");
-        `,
-        },
-        {
-          name: "expr3",
-          title: "MSA Median Family Income",
-          expression: `
-          var raw = $feature["MSA_Benchmark_Median_Family_Income"];
-
-          var s = Trim(Text(raw));
-          if (IsEmpty(s) || s == "") return "N/A";
-
-          // strip formatting that breaks Number()
-          s = Replace(s, ",", "");
-          s = Replace(s, "$", "");
-          s = Replace(s, FromCharCode(160), ""); // non-breaking space
-
-          var n = Number(s);
-          if (IsNan(n) || n == 0) return "N/A";
-
-          return "$" + Text(n, "#,###");
-        `,
-        },
-        {
-          name: "expr4",
-          title: "Tract % of State Benchmark",
-          expression: `
-          var v = $feature["Census_Tract_Percent_of_State_Benchmarked_Median_Family_Income"];
-          if (IsEmpty(v) || Trim(Text(v)) == "") return "N/A";
-          return Text(v) + "%";
-        `,
-        },
-        {
-          name: "expr5",
-          title: "Tract % of MSA Benchmark",
-          expression: `
-          var v = $feature["Census_Tract_Percent_of_MSA_Benchmarked_Median_Family_Income"];
-          if (IsEmpty(v) || Trim(Text(v)) == "") return "N/A";
-          return Text(v) + "%";
-        `,
-        },
-      ],
-      title: "Low Access and Low Income Tracts",
-      content: `
-      <div style="font-family:Arial, sans-serif;font-size:13px;">
-    <div style="background-color:#2b4a6f;color:#ffffff;font-size:15px;margin:-4px -4px 8px;padding:6px 10px;">
-        <strong>Census Tract Profile</strong>
-    </div>
-    <div style="margin:4px 0 10px;">
-        <div style="color:#333;">
-            <strong>Census Tract: </strong><span><strong>{GEOID11}</strong></span><strong>&nbsp;</strong>
-        </div>
-        <div style="color:#555;margin-top:2px;">
-            County: <strong>{County_Name}</strong><br>
-            Metro / Non-Metro: <span><strong>{Metro_Nonmetro_Designation}</strong></span><strong>&nbsp;</strong><br>
-            RUCA Type: <strong>{RUCA_Type}</strong> Value: <span><strong>{PrimaryRUCA}&nbsp;</strong></span>
-        </div>
-        <div style="color:#555;margin-top:2px;">
-            Total Population: <strong>{POP_TOTAL}</strong><br>
-            <strong>Low Income:</strong> <span><strong>{Does_Census_Tract_Qualify_for_IGI_based_on_Poverty_or_Income_Criteria}</strong></span>&nbsp;
-        </div>
-        <div style="color:#555;margin-top:2px;">
-            <strong>Low Access: </strong><span><strong>{expression/expr0}</strong></span><strong>&nbsp;</strong>
-        </div>
-    </div>
-    <div style="border-bottom:1px solid #cccccc;color:#a32b2b;margin:6px 0 4px;padding-bottom:2px;">
-        <strong>Low Access to Healthy Food</strong>
-    </div>
-    <figure>
-        <figure>
-            <figure>
-                <figure>
-                    <figure class="table">
-                        <table style="border-collapse:collapse;margin-bottom:8px;">
-                            <tbody>
-                                <tr style="background-color:#f5f5f5;">
-                                    <td style="color:#333;padding:4px 6px;width:55%;">
-                                        Low-Access Population
-                                    </td>
-                                    <td style="padding:4px 6px;text-align:right;">
-                                        <strong>{LOWACC_POP_FIX}</strong>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="color:#333;padding:4px 6px;">
-                                        Low-Access Share of Tract Population
-                                    </td>
-                                    <td style="padding:4px 6px;text-align:right;">
-                                        <strong>{PCT_LOWACC}%</strong>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </figure>
-                </figure>
-            </figure>
-        </figure>
-    </figure>
-    <div style="border-bottom:1px solid #cccccc;color:#a32b2b;margin:6px 0 4px;padding-bottom:2px;">
-        <strong>Poverty &amp; Income Indicators</strong>
-    </div>
-    <figure>
-        <figure>
-            <figure>
-                <figure>
-                    <figure class="table">
-                        <table style="border-collapse:collapse;margin-bottom:4px;">
-                            <tbody>
-                                <tr style="background-color:#f5f5f5;">
-                                    <td style="color:#333;padding:4px 6px;width:55%;">
-                                        Census Tract Poverty Rate
-                                    </td>
-                                    <td style="padding:4px 6px;text-align:right;">
-                                        <span><strong>{Census_Tract_Poverty_Rate}</strong></span><strong> %</strong>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="color:#333;padding:4px 6px;">
-                                        Median Family Income (Tract)
-                                    </td>
-                                    <td style="padding:4px 6px;text-align:right;">
-                                        <span><strong>{expression/expr1}</strong></span>
-                                    </td>
-                                </tr>
-                                <tr style="background-color:#f5f5f5;">
-                                    <td style="color:#333;padding:4px 6px;">
-                                        State Median Family Income
-                                    </td>
-                                    <td style="padding:4px 6px;text-align:right;">
-                                        <span><strong>{expression/expr2}</strong></span><strong>&nbsp;</strong>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="color:#333;padding:4px 6px;">
-                                        Tract % of State Benchmark
-                                    </td>
-                                    <td style="padding:4px 6px;text-align:right;">
-                                        <span><strong>{expression/expr4}</strong></span><strong>&nbsp;</strong>
-                                    </td>
-                                </tr>
-                                <tr style="background-color:#f5f5f5;">
-                                    <td style="color:#333;padding:4px 6px;">
-                                        MSA Median Family Income
-                                    </td>
-                                    <td style="padding:4px 6px;text-align:right;">
-                                        <span><strong>{expression/expr3}</strong></span><strong>&nbsp;</strong>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="color:#333;padding:4px 6px;">
-                                        Tract % of MSA Benchmark
-                                    </td>
-                                    <td style="padding:4px 6px;text-align:right;">
-                                        <span><strong>{expression/expr5}</strong></span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </figure>
-                </figure>
-            </figure>
-        </figure>
-    </figure>
-</div>
-    `,
-    },
+  const layer4 = new FeatureLayer({
+    url: layerUrl4,
+    outFields: ["*"],
+    popupEnabled: true,
   });
 
   const map = new Map({
-    basemap: "osm",
-    layers: [featureLayer],
+    basemap: "streets-vector",
+    layers: [layer1, layer2, layer3, layer4],
   });
 
   const viewOptions = {
@@ -316,7 +327,12 @@ async function main() {
   setStatus("Creating view…");
   const view = new MapView(viewOptions);
 
-  const ACTION_LAYER_URLS = new Set([layerUrl]);
+  const ACTION_LAYER_URLS = new Set([
+    layerUrl1,
+    layerUrl2,
+    layerUrl3,
+    layerUrl4,
+  ]);
 
   function isActionLayer(layer) {
     const url = layer?.url?.replace(/\/+$/, "");
@@ -364,24 +380,20 @@ async function main() {
   console.log("View ready");
 
   try {
-    await featureLayer.load();
-    console.log("FeatureLayer loaded:", {
-      title: featureLayer.title,
-      geometryType: featureLayer.geometryType,
-      spatialReference: featureLayer.spatialReference,
-      fullExtent: featureLayer.fullExtent,
-      renderer: featureLayer.renderer,
-    });
+    await Promise.all([
+      layer1.load(),
+      layer2.load(),
+      layer3.load(),
+      layer4.load(),
+    ]);
 
-    const layerView = await view.whenLayerView(featureLayer);
-    console.log("LayerView ready:", layerView);
+    console.log("All layers loaded");
 
-    if (featureLayer.fullExtent) {
-      await view.goTo(featureLayer.fullExtent.expand(1.2));
+    if (layer1.fullExtent) {
+      await view.goTo(layer1.fullExtent.expand(1.2));
       setStatus("Ready ✅ (zoomed to layer)");
-    } else if (featureLayer.queryExtent) {
-      const { extent } = await featureLayer.queryExtent();
-      console.log("Queried extent:", extent);
+    } else if (layer1.queryExtent) {
+      const { extent } = await layer1.queryExtent();
       if (extent) {
         await view.goTo(extent.expand(1.2));
         setStatus("Ready ✅ (queried extent)");
@@ -389,11 +401,11 @@ async function main() {
         setStatus("Ready ✅ (no extent returned)");
       }
     } else {
-      setStatus("Ready ✅ (layer loaded)");
+      setStatus("Ready ✅ (layers loaded)");
     }
   } catch (e) {
-    console.error("FeatureLayer / LayerView FAILED:", e);
-    setStatus("Feature layer failed to draw (see Console)");
+    console.error("Layer load FAILED:", e);
+    setStatus("One or more layers failed to load (see Console)");
   }
 
   view.watch("stationary", (isStationary) => {
