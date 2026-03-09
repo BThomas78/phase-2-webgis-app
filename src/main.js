@@ -296,23 +296,96 @@ async function main() {
     outFields: ["*"],
     popupEnabled: true,
     popupTemplate: sharedPopupTemplate,
+    renderer: {
+      type: "simple",
+      symbol: {
+        type: "simple-fill",
+        color: [0, 0, 0, 0.0], // no fill
+        outline: {
+          color: [0, 0, 0, 5], // 50% transparent black outline
+          width: 1,
+        },
+      },
+    },
   });
 
   const layer3 = new FeatureLayer({
     url: layerUrl3,
     outFields: ["*"],
-    popupEnabled: true,
+    popupEnabled: false,
+    renderer: {
+      type: "simple",
+      symbol: {
+        type: "simple-fill",
+        color: [0, 0, 0, 0], // transparent fill
+        outline: {
+          color: [60, 60, 60, 1],
+          width: 1.2,
+        },
+      },
+    },
+    labelingInfo: [
+      {
+        labelExpressionInfo: {
+          expression: "$feature.NAME",
+        },
+        symbol: {
+          type: "text",
+          color: "black",
+          haloColor: "white",
+          haloSize: 1.5,
+          font: {
+            family: "Arial",
+            size: 10,
+            weight: "bold",
+          },
+        },
+        labelPlacement: "always-horizontal",
+        minScale: 9244649,
+        maxScale: 0,
+      },
+    ],
+    labelsVisible: true,
   });
 
   const layer4 = new FeatureLayer({
     url: layerUrl4,
     outFields: ["*"],
     popupEnabled: true,
+    minScale: 2311163,
+    maxScale: 0,
+    renderer: {
+      type: "simple",
+      symbol: {
+        type: "simple-marker",
+        style: "circle",
+        size: 8,
+        color: [0, 153, 51, 0.95],
+        outline: {
+          color: [255, 255, 255, 1],
+          width: 1.2,
+        },
+      },
+    },
+    popupTemplate: {
+      title: "{Establishment}",
+      content: `
+      <div style="font-family:Arial, sans-serif;font-size:13px;">
+        <div style="background-color:#2b4a6f;color:#ffffff;font-size:15px;margin:-4px -4px 8px;padding:6px 10px;">
+          <strong>Grocery Location</strong>
+        </div>
+        <div style="margin:4px 0 10px;color:#333;">
+          <strong>Establishment:</strong> {Establishment}<br>
+          <strong>Address:</strong> {Address}
+        </div>
+      </div>
+    `,
+    },
   });
 
   const map = new Map({
     basemap: "streets-vector",
-    layers: [layer1, layer2, layer3, layer4],
+    layers: [layer1, layer2, layer4, layer3],
   });
 
   const viewOptions = {
