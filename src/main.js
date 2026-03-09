@@ -1,7 +1,6 @@
 import "./style.css";
 import "@arcgis/core/assets/esri/themes/light/main.css";
 
-import esriConfig from "@arcgis/core/config.js";
 import Map from "@arcgis/core/Map.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer.js";
@@ -67,16 +66,15 @@ async function main() {
   setStatus("Loading config…");
   const cfg = await loadConfig();
 
-  if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
-
-  console.log("Running without API key for public FeatureLayer test");
-
   const { center, zoom, scale } = applyUrlViewState(cfg);
 
   const layerUrl =
     "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_022626/FeatureServer/3";
 
-  setStatus("Loading layer test…");
+  console.log("Running without API key for public FeatureLayer test");
+  console.log("Layer URL:", layerUrl);
+
+  setStatus("Loading layer…");
   const featureLayer = new FeatureLayer({
     url: layerUrl,
     outFields: ["*"],
@@ -98,13 +96,6 @@ async function main() {
 
   setStatus("Creating view…");
   const view = new MapView(viewOptions);
-
-  featureLayer.load().catch((e) => {
-    console.error("FeatureLayer load FAILED:", e);
-    setStatus("Feature layer failed to load (see Console)");
-  });
-
-  console.warn("Search disabled for public FeatureLayer test.");
 
   const ACTION_LAYER_URLS = new Set([layerUrl]);
 
@@ -151,7 +142,40 @@ async function main() {
   );
 
   await view.when();
-  setStatus("Ready ✅ (click the map)");
+  console.log("View ready");
+
+  try {
+    await featureLayer.load();
+    console.log("FeatureLayer loaded:", {
+      title: featureLayer.title,
+      geometryType: featureLayer.geometryType,
+      spatialReference: featureLayer.spatialReference,
+      fullExtent: featureLayer.fullExtent,
+      renderer: featureLayer.renderer,
+    });
+
+    const layerView = await view.whenLayerView(featureLayer);
+    console.log("LayerView ready:", layerView);
+
+    if (featureLayer.fullExtent) {
+      await view.goTo(featureLayer.fullExtent.expand(1.2));
+      setStatus("Ready ✅ (zoomed to layer)");
+    } else if (featureLayer.queryExtent) {
+      const { extent } = await featureLayer.queryExtent();
+      console.log("Queried extent:", extent);
+      if (extent) {
+        await view.goTo(extent.expand(1.2));
+        setStatus("Ready ✅ (queried extent)");
+      } else {
+        setStatus("Ready ✅ (no extent returned)");
+      }
+    } else {
+      setStatus("Ready ✅ (layer loaded)");
+    }
+  } catch (e) {
+    console.error("FeatureLayer / LayerView FAILED:", e);
+    setStatus("Feature layer failed to draw (see Console)");
+  }
 
   view.watch("stationary", (isStationary) => {
     if (!isStationary) return;
@@ -195,7 +219,7 @@ async function main() {
     try {
       await navigator.clipboard.writeText(url.toString());
       setStatus("Link copied ✅");
-      setTimeout(() => setStatus("Ready ✅ (click the map)"), 1200);
+      setTimeout(() => setStatus("Ready ✅"), 1200);
     } catch {
       window.prompt("Copy this link:", url.toString());
     }
@@ -241,7 +265,6 @@ async function main() {
     if (isIdentifying) return;
 
     if (isUpdating) setStatus("Updating…");
-    else setStatus("Ready ✅ (click the map)");
   });
 
   view.on("click", async (event) => {
