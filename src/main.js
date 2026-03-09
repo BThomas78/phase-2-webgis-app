@@ -2,8 +2,9 @@ import "./style.css";
 import "@arcgis/core/assets/esri/themes/light/main.css";
 
 import esriConfig from "@arcgis/core/config.js";
+import Map from "@arcgis/core/Map.js";
 import MapView from "@arcgis/core/views/MapView.js";
-import WebMap from "@arcgis/core/WebMap.js";
+import FeatureLayer from "@arcgis/core/layers/FeatureLayer.js";
 
 import LayerList from "@arcgis/core/widgets/LayerList.js";
 import Legend from "@arcgis/core/widgets/Legend.js";
@@ -28,7 +29,6 @@ function applyUrlViewState(cfg) {
 
   const centerStr = params.get("center");
 
-  // center
   let center = cfg.center ?? [-89.3985, 40.6331];
   if (centerStr) {
     const parts = centerStr.split(",").map(Number);
@@ -37,7 +37,6 @@ function applyUrlViewState(cfg) {
     }
   }
 
-  // zoom (only if valid >= 0)
   const zoomStr = params.get("zoom");
   let zoom = null;
   if (zoomStr !== null) {
@@ -45,7 +44,6 @@ function applyUrlViewState(cfg) {
     if (Number.isFinite(z) && z >= 0) zoom = clamp(Math.round(z), 0, 23);
   }
 
-  // scale (fallback, always valid)
   const scaleStr = params.get("scale");
   let scale = null;
   if (scaleStr !== null) {
@@ -53,7 +51,6 @@ function applyUrlViewState(cfg) {
     if (Number.isFinite(s) && s > 0) scale = Math.round(s);
   }
 
-  // Default if neither is provided
   if (zoom === null && scale === null) zoom = cfg.zoom ?? 6;
 
   return { center, zoom, scale };
@@ -72,31 +69,31 @@ async function main() {
   const cfg = await loadConfig();
 
   if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
-  if (!cfg.webmapItemId) throw new Error("config.json missing webmapItemId");
 
-  // ✅ API key FIRST (GitHub Pages build must inject this via Actions secret)
   const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
   const hasKey = !!apiKey;
   console.log("API key present?", hasKey);
   if (hasKey) esriConfig.apiKey = apiKey;
 
-  setStatus("Loading WebMap…");
-  const webmap = new WebMap({
-    portalItem: { id: cfg.webmapItemId },
+  const { center, zoom, scale } = applyUrlViewState(cfg);
+
+  const layerUrl =
+    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_022626/FeatureServer/0";
+
+  setStatus("Loading layer…");
+  const featureLayer = new FeatureLayer({
+    url: layerUrl,
+    outFields: ["*"],
   });
 
-  // Preflight check: can we reach the portal item JSON?
-  const itemUrl = `${esriConfig.portalUrl}/sharing/rest/content/items/${cfg.webmapItemId}?f=json`;
-  fetch(itemUrl)
-    .then((r) => r.json())
-    .then((j) => console.log("Portal item preflight:", j))
-    .catch((e) => console.error("Portal item preflight FAILED:", e));
-
-  const { center, zoom, scale } = applyUrlViewState(cfg);
+  const map = new Map({
+    basemap: "streets-navigation-vector",
+    layers: [featureLayer],
+  });
 
   const viewOptions = {
     container: "viewDiv",
-    map: webmap,
+    map,
     center,
   };
 
@@ -106,29 +103,22 @@ async function main() {
   setStatus("Creating view…");
   const view = new MapView(viewOptions);
 
-  // If the WebMap fails to load, show it clearly instead of a blank screen
-  webmap.load().catch((e) => {
-    console.error("WebMap load FAILED:", e);
-    setStatus("WebMap failed to load (see Console)");
+  featureLayer.load().catch((e) => {
+    console.error("FeatureLayer load FAILED:", e);
+    setStatus("Feature layer failed to load (see Console)");
   });
 
-  // Widgets (Search only when key is present)
   if (hasKey) {
     view.ui.add(new Search({ view }), "top-right");
   } else {
     console.warn("Search disabled: no API key in this build.");
   }
 
-  // ✅ LayerList actions allowed only for these portal item IDs
-  const ACTION_PORTALITEM_IDS = new Set([
-    "f193a89113fa43a6ae9c4482b2d9c1d3",
-    "88e08b054f834d25a3d215497674f94d",
-    "45473913f9504373a1e532ebd8fdf663",
-  ]);
+  const ACTION_LAYER_URLS = new Set([layerUrl]);
 
   function isActionLayer(layer) {
-    const pid = layer?.portalItem?.id;
-    return !!pid && ACTION_PORTALITEM_IDS.has(pid);
+    const url = layer?.url?.replace(/\/+$/, "");
+    return !!url && ACTION_LAYER_URLS.has(url);
   }
 
   const layerList = new LayerList({
@@ -171,7 +161,6 @@ async function main() {
   await view.when();
   setStatus("Ready ✅ (click the map)");
 
-  // Keep URL in sync with view (use scale; only write zoom if valid)
   view.watch("stationary", (isStationary) => {
     if (!isStationary) return;
 
@@ -194,7 +183,6 @@ async function main() {
     window.history.replaceState({}, "", url);
   });
 
-  // Copy link (use scale; only include zoom if valid)
   copyBtn?.addEventListener("click", async () => {
     const c = view.center;
     const url = new URL(window.location.href);
@@ -221,7 +209,6 @@ async function main() {
     }
   });
 
-  // LayerList action handler
   layerList.on("trigger-action", async (event) => {
     const layer = event.item?.layer;
     if (!layer) return;
@@ -256,7 +243,6 @@ async function main() {
     }
   });
 
-  // Loading indicator (don’t override identify)
   view.watch("updating", (isUpdating) => {
     const current = statusEl.textContent || "";
     const isIdentifying = current.startsWith("Identifying");
@@ -266,7 +252,6 @@ async function main() {
     else setStatus("Ready ✅ (click the map)");
   });
 
-  // Click-to-identify
   view.on("click", async (event) => {
     try {
       setStatus("Identifying…");
