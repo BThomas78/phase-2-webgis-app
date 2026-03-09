@@ -87,7 +87,7 @@ async function main() {
   });
 
   const map = new Map({
-    basemap: "streets-navigation-vector",
+    basemap: "osm",
     layers: [featureLayer],
   });
 
