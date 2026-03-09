@@ -8,7 +8,6 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer.js";
 
 import LayerList from "@arcgis/core/widgets/LayerList.js";
 import Legend from "@arcgis/core/widgets/Legend.js";
-import Search from "@arcgis/core/widgets/Search.js";
 import Expand from "@arcgis/core/widgets/Expand.js";
 
 const statusEl = document.getElementById("status");
@@ -70,10 +69,7 @@ async function main() {
 
   if (cfg.portalUrl) esriConfig.portalUrl = cfg.portalUrl;
 
-  const apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
-  const hasKey = !!apiKey;
-  console.log("API key present?", hasKey);
-  if (hasKey) esriConfig.apiKey = apiKey;
+  console.log("Running without API key for public FeatureLayer test");
 
   const { center, zoom, scale } = applyUrlViewState(cfg);
 
@@ -108,11 +104,7 @@ async function main() {
     setStatus("Feature layer failed to load (see Console)");
   });
 
-  if (hasKey) {
-    view.ui.add(new Search({ view }), "top-right");
-  } else {
-    console.warn("Search disabled: no API key in this build.");
-  }
+  console.warn("Search disabled for public FeatureLayer test.");
 
   const ACTION_LAYER_URLS = new Set([layerUrl]);
 
