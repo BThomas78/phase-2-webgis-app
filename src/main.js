@@ -354,7 +354,7 @@ async function main() {
   const layer4 = new FeatureLayer({
     url: layerUrl4,
     title: "Grocery Locations"
-    outFields: ["*"],
+    outFields: ["Establishment", "Address"],
     popupEnabled: true,
     minScale: 2311163,
     maxScale: 0,
