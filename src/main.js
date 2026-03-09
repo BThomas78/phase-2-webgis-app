@@ -92,7 +92,7 @@ async function main() {
           name: "expr1",
           title: "Median Family Income (Tract)",
           expression: `
-          var n = Number($feature["Median_Family_Income"]);
+          var n = Number($feature["Census_Tract_Median_Family_Income"]);
           if (IsEmpty(n) || IsNaN(n)) return "N/A";
           return "$" + Text(n, "#,###");
         `,
@@ -101,7 +101,7 @@ async function main() {
           name: "expr2",
           title: "State Median Family Income",
           expression: `
-          var n = Number($feature["State_Median_Family_Income"]);
+          var n = Number($feature["State Median Family Income"]);
           if (IsEmpty(n) || IsNaN(n)) return "N/A";
           return "$" + Text(n, "#,###");
         `,
@@ -110,7 +110,7 @@ async function main() {
           name: "expr3",
           title: "MSA Median Family Income",
           expression: `
-          var n = Number($feature["MSA_Median_Family_Income"]);
+          var n = Number($feature["MMSA_Benchmark_Median_Family_Income"]);
           if (IsEmpty(n) || IsNaN(n)) return "N/A";
           return "$" + Text(n, "#,###");
         `,
