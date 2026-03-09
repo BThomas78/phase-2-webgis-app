@@ -274,13 +274,13 @@ async function main() {
     "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_022626/FeatureServer/3";
 
   const layerUrl2 =
-    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_ALL_022626/FeatureServer/0";
+    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_ALL_022626/FeatureServer/3";
 
   const layerUrl3 =
     "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_Counties/FeatureServer/0";
 
   const layerUrl4 =
-    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/Grocery_Locations/FeatureServer/0";
+    "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/Grocery_Locations/FeatureServer/9";
 
   setStatus("Loading layers…");
 
