@@ -80,7 +80,7 @@ async function main() {
   const layerUrl =
     "https://services2.arcgis.com/QUAsjBqieHEMNnZW/arcgis/rest/services/IL_CT_UR_Joined_RUCA_022626/FeatureServer/3";
 
-  setStatus("Loading layer…");
+  setStatus("Loading layer test…");
   const featureLayer = new FeatureLayer({
     url: layerUrl,
     outFields: ["*"],
