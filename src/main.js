@@ -286,6 +286,7 @@ async function main() {
 
   const layer1 = new FeatureLayer({
     url: layerUrl1,
+    title: "Low Access and Low Income Tracts"
     outFields: ["*"],
     popupEnabled: true,
     popupTemplate: sharedPopupTemplate,
@@ -293,6 +294,7 @@ async function main() {
 
   const layer2 = new FeatureLayer({
     url: layerUrl2,
+    title: "All Census Tracts"
     outFields: ["*"],
     popupEnabled: true,
     popupTemplate: sharedPopupTemplate,
@@ -311,6 +313,7 @@ async function main() {
 
   const layer3 = new FeatureLayer({
     url: layerUrl3,
+    title: "Illinois Counties"
     outFields: ["*"],
     popupEnabled: false,
     renderer: {
@@ -350,6 +353,7 @@ async function main() {
 
   const layer4 = new FeatureLayer({
     url: layerUrl4,
+    title: "Grocery Locations"
     outFields: ["*"],
     popupEnabled: true,
     minScale: 2311163,
